@@ -1,0 +1,15 @@
+import {places,roads,getPlace} from './network.js';
+// Reusable layout UI. No bus/CNG missions, vehicles, fares or progress are owned here.
+export function showAreaPicker({language='en',selected='mirpur12',onStart,onCancel=()=>{}}){
+ const bn=language==='bn',name=p=>bn?p.bn:p.en;
+ const dialog=document.createElement('dialog');dialog.className='area-picker';document.body.append(dialog);let start=getPlace(selected)||places[0];
+ dialog.innerHTML=`<button class="close" aria-label="Close">×</button><div class="eyebrow">${bn?'এক মানচিত্র · সবার গল্প':'ONE MAP · EVERY PERSPECTIVE'}</div><h2>${bn?'কোথা থেকে শুরু করবেন?':'Where does your shift begin?'}</h2><p>${bn?'শুধু শুরুর এলাকা বেছে নিন। তারপর একই শহরে যেদিকে ইচ্ছা যান।':'Pick where you appear. Then drive anywhere on the same city map.'}</p><div class="area-layout"><div class="area-map"></div><div><label>${bn?'শুরুর এলাকা':'Starting area'}<select class="area-select"></select></label><p class="area-note">${bn?'এটি সংক্ষিপ্ত গেম লেআউট; দূরত্ব বাস্তব স্কেলে নয়।':'Compressed game layout; distances are not to real-world scale.'}</p></div></div><div class="modal-actions"><button class="primary area-start">${bn?'শহরে প্রবেশ করুন ↗':'Enter the city ↗'}</button><button class="text-button area-back">${bn?'ফিরে যান':'Back'}</button></div>`;
+ const q=s=>dialog.querySelector(s);q('.area-select').innerHTML=places.map(p=>`<option value="${p.id}" ${p.id===start.id?'selected':''}>${name(p)}</option>`).join('');
+ function render(){const scale=.35,px=p=>365+p.x*scale,pz=p=>385+p.z*scale;let svg=`<svg viewBox="0 0 520 660" role="img" aria-label="Mirpur Agargaon shared network"><rect width="520" height="660" rx="15" fill="#103b43"/><g stroke-linecap="round">`;
+  for(const r of roads){const a=getPlace(r.from),b=getPlace(r.to);svg+=`<path d="M${px(a)} ${pz(a)}L${px(b)} ${pz(b)}" stroke="#45818a" stroke-width="13"/><path d="M${px(a)} ${pz(a)}L${px(b)} ${pz(b)}" stroke="#ffe173" stroke-width="3" />`}
+  for(const p of places){const active=start.id===p.id;svg+=`<g><circle cx="${px(p)}" cy="${pz(p)}" r="${active?10:5}" fill="${active?'#ff714f':'#fff1c5'}"/><text x="${px(p)+(p.x!==0?-10:14)}" y="${pz(p)-10}" text-anchor="${p.x!==0?'end':'start'}" fill="#fff1d1" font-family="sans-serif" font-size="11">${name(p).replace(' · Stadium','')}</text></g>`}
+  svg+=`<text x="18" y="24" fill="#f9d559" font-size="11">N ↑ / DHAKA TERROR</text><text x="18" y="642" fill="#b8d9d1" font-size="10">${bn?'সব হলুদ রেখা: চলাচলের রাস্তা':'YELLOW LINES: CONNECTED ROADS'}</text><text x="195" y="210" fill="#faac68" font-size="11">🏏 ${bn?'স্টেডিয়াম':'STADIUM'}</text></g></svg>`;q('.area-map').innerHTML=svg;
+
+ }
+ q('.area-select').onchange=e=>{start=getPlace(e.target.value);render()};const cancel=()=>{dialog.close();dialog.remove();onCancel()};q('.close').onclick=q('.area-back').onclick=cancel;dialog.addEventListener('cancel',e=>{e.preventDefault();cancel()});q('.area-start').onclick=()=>{dialog.close();dialog.remove();onStart({startPlaceId:start.id,mapVersion:1})};render();dialog.showModal();
+}
